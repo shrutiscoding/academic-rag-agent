@@ -1,10 +1,33 @@
 
 import streamlit as st
 import pandas as pd
-from rag_engine import RAGEngine
+from rag_engine import RAGEngine, supabase
 from PIL import Image
 import io
+# ==========================================================
+# SESSION STATE
+# ==========================================================
 
+if "rag_engine" not in st.session_state:
+    st.session_state.rag_engine = RAGEngine()
+
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+rag_engine = st.session_state.rag_engine
+
+
+def verify_admin(email, password):
+    response = (
+        supabase
+        .table("admins")
+        .select("*")
+        .eq("email", email.strip())
+        .eq("password", password.strip())
+        .execute()
+    )
+
+    return len(response.data) > 0
 # ==========================================================
 # LOGIN SYSTEM (ADDED - SAFE)
 # ==========================================================
@@ -16,18 +39,32 @@ if st.session_state.role is None:
 
     st.title("🔐 Academic RAG Login")
 
-    selected_role = st.selectbox("Login as", ["Admin", "Student"])
+    selected_role = st.selectbox(
+        "Login as",
+        ["Admin", "Student"]
+    )
 
     email = st.text_input("Email")
-    password = st.text_input("Password", type="password")
+
+    password = st.text_input(
+        "Password",
+        type="password"
+    )
 
     if st.button("Login"):
 
-        if selected_role == "Admin" and email == "admin@gmail.com" and password == "admin123":
-            st.session_state.role = "admin"
-            st.rerun()
+        if selected_role == "Admin":
 
-        elif selected_role == "Student" and email != "":
+            if verify_admin(email, password):
+                st.session_state.role = "admin"
+                st.success("Admin Login Successful")
+                st.rerun()
+
+            else:
+                st.error("Invalid admin credentials")
+
+        elif selected_role == "Student" and email.strip():
+
             st.session_state.role = "student"
             st.rerun()
 
@@ -38,15 +75,6 @@ if st.session_state.role is None:
 
 role = st.session_state.role
 
-# ==========================================================
-# PAGE CONFIG
-# ==========================================================
-
-st.set_page_config(
-    page_title="Academic RAG Agent",
-    page_icon="🎓",
-    layout="wide"
-)
 
 # ==========================================================
 # SAFE UI STYLING
