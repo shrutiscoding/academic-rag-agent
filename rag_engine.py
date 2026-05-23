@@ -63,16 +63,22 @@ CHUNK_OVERLAP = 150
 
 class Embeddings:
     def __init__(self):
-        self.model = SentenceTransformer(
-            "all-MiniLM-L6-v2",
-            device="cpu"
-        )
+        self.model = None
+
+    def get_model(self):
+        if self.model is None:
+            self.model = SentenceTransformer(
+                "all-MiniLM-L6-v2",
+                device="cpu"
+            )
+        return self.model
 
     def embed(self, text):
         if not text:
             text = "empty"
-        return self.model.encode(text).tolist()
 
+        model = self.get_model()
+        return model.encode(text).tolist()
 
 # ============================================================
 # ENGINE
